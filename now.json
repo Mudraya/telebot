@@ -2,7 +2,7 @@
   "version": 2,
   "name": "telebot",
   "builds": [
-  { "src": "index.js", "use": "@now/node" },
+  { "src": "index.js", "use": "@now/node-server" },
   { "src": "index.html", "use": "@now/static" }
   ]
 }

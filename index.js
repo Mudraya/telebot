@@ -57,3 +57,4 @@ bot.onText(/\/(start|help)/, function (msg, match) {
       'pisces - если ты Рыбы\n')
   }
 })
+
