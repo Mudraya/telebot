@@ -3,6 +3,14 @@ const jsdom = require('jsdom')
 const { JSDOM } = jsdom
 const http = require('http')
 const TelegramBot = require('node-telegram-bot-api')
+
+const server = http.createServer((req, res) => {
+  res.writeHeader(200, { 'Content-Type': 'text/html' })
+  const currentTime = moment().format('MMMM Do YYYY, h:mm:ss a')
+  res.end(currentTime)
+  console.log('fff')
+});
+
 const token = process.env['tg_api_key'] || '755380132:AAH326o9uguBRBOC9qpGX_n5TvQug85W8Ys'
 const bot = new TelegramBot(token, { polling: true })
 const url = 'https://telebot.mudrayaod.now.sh'
@@ -57,4 +65,6 @@ bot.onText(/\/(start|help)/, function (msg, match) {
       'pisces - если ты Рыбы\n')
   }
 })
+
+server.listen()
 
