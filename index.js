@@ -1,3 +1,4 @@
+require('http').createServer().listen(3000)
 const jsdom = require('jsdom')
 const { JSDOM } = jsdom
 const http = require('http')
