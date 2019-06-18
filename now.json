@@ -1,7 +1,10 @@
 {
   "version": 2,
   "name": "telebot",
-  "builds": [{ "src": "index.js", "use": "@now/node", "config": { "maxLambdaSize": "15mb" } }],
+  "builds": [
+  { "src": "index.js", "use": "@now/node" },
+  { "src": "index.html", "use": "@now/static" }
+  ],
   "routes": [
     { "src": "/", "dest": "www/index.html" }
   ]
