@@ -3,7 +3,7 @@ const request = require('request')
 const jsdom = require('jsdom')
 const { JSDOM } = jsdom
 const token = process.env['tg_api_key'] || '755380132:AAH326o9uguBRBOC9qpGX_n5TvQug85W8Ys'
-const webHookUrl = 'https://test.mudrayaod.now.sh'
+const webHookUrl = 'https://telebot.mudrayaod.now.sh'
 
 const sendMessage = (chatId, text, res) => {
   const sendMessageUrl = `https://api.telegram.org/bot${token}/sendMessage`
