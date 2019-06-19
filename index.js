@@ -1,63 +1,63 @@
-const http = require('http')
-const request = require('request')
+require('http').createServer().listen(3000)
 const jsdom = require('jsdom')
 const { JSDOM } = jsdom
-const token = process.env['tg_api_key'] || '755380132:AAH326o9uguBRBOC9qpGX_n5TvQug85W8Ys'
-const webHookUrl = 'https://telebot.mudrayaod.now.sh'
+const http = require('http')
+const TelegramBot = require('node-telegram-bot-api')
 
-const sendMessage = (chatId, text, res) => {
-  const sendMessageUrl = `https://api.telegram.org/bot${token}/sendMessage`
 
-  request.post({
-        url: sendMessageUrl,
-        method: 'post',
-        body: {
-          chat_id: chatId,
-          text: text
-        },
-        json: true
-      },
-      (error, response, body) => {
-        console.log(error)
-        console.log(body)
-        res.writeHead(200, { 'Content-Type': 'text/html' })
-        res.end()
-      }
-  )
-}
+    const token = process.env['tg_api_key'] || '755380132:AAH326o9uguBRBOC9qpGX_n5TvQug85W8Ys'
+    const bot = new TelegramBot(token, { polling: true })
+    const url = 'https://telebot.mudrayaod.now.sh'
 
-http.createServer(function (req, res) {
-  let data = ''
+    bot.setWebHook(`${url}/bot${token}`)
 
-  req.on('data', chunk => {
-    data += chunk
-  })
+    bot.on('message', (msg) => {
+        // console.log(msg);
+        var fromId = msg.from.id
+        var sign = msg.text.toString().toLowerCase()
 
-  req.on('end', () => {
-    const parsedUpdate = data != '' ? JSON.parse(data) : {}
-    if (typeof parsedUpdate.message !== 'undefined') {
-      const text = parsedUpdate.message.text.toString()
-      const chatId = parsedUpdate.message.chat.id
-      sendMessage(chatId,text,res)
-    }
-  })
-}).listen(3000)
+        let optionsJsdom = {
+            referrer: 'http://astroscope.ru/horoskop/ejednevniy_goroskop/' + sign + '.html'
+        }
 
-const setWebHook = () => {
-  const setWebhookUrl = `https://api.telegram.org/bot${token}/setWebhook`
+        let request = http.get('http://astroscope.ru/horoskop/ejednevniy_goroskop/' + sign + '.html', function (response) {
+            if (response.statusCode === 200) {
+                JSDOM.fromURL('http://astroscope.ru/horoskop/ejednevniy_goroskop/' + sign + '.html', optionsJsdom).then(dom => {
+                        let horoscope = dom.window.document.querySelectorAll('.p-3')[1].innerHTML
+                        bot.sendMessage(fromId, horoscope)
+                    }
+                )
+            } else { if (sign !== '/start' && sign !== '/help') bot.sendMessage(fromId, 'Пожалуйста, придерживайся инструкции ;)') }
+        })
 
-  request.post({
-        url: setWebhookUrl,
-        method: 'post',
-        body: {
-          url: webHookUrl
-        },
-        json: true
-      },
-      (error, response, body) => {
-        console.log(body)
-        console.log(error)
-      })
-}
+        request.on('error', function (error) {
+            console.error(error.status)
+        })
+    })
 
-setWebHook()
+    bot.onText(/\/(start|help)/, function (msg, match) {
+        var fromId = msg.from.id
+
+        if (match[1].toString() === 'start') {
+            bot.sendMessage(fromId, 'Добро пожаловать!\nЧтобы узнать как пользоваться ботом используй команду /help')
+        }
+
+        if (match[1].toString() === 'help') {
+            bot.sendMessage(fromId, 'Давай же вместе узнаем, что интересного ждет тебя сегодня)\n' +
+                'Надеюсь, ты знаешь свой зодиакальный знак) В зависимости от этого введи одно из следующих слов:\n\n' +
+                'aries - если ты Овен\n' +
+                'taurus - если ты Телец\n' +
+                'gemini - если ты Близнецы\n' +
+                'cancer - если ты Рак\n' +
+                'leo - если ты Лев\n' +
+                'virgo - если ты Дева\n' +
+                'libra - если ты Весы\n' +
+                'scorpio - если ты Скорпион\n' +
+                'sagittarius - если ты Стрелец\n' +
+                'capricorn - если ты Козерог\n' +
+                'aquarius - если ты Водолей\n' +
+                'pisces - если ты Рыбы\n')
+        }
+    })
+
+
