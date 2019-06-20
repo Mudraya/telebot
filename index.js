@@ -1,63 +1,124 @@
-require('http').createServer().listen(3000)
+const http = require('http')
+const firebase = require('firebase')
+const request = require('request')
 const jsdom = require('jsdom')
 const { JSDOM } = jsdom
-const http = require('http')
-const TelegramBot = require('node-telegram-bot-api')
+const token = process.env['tg_api_key'] || '755380132:AAH326o9uguBRBOC9qpGX_n5TvQug85W8Ys'
+const webHookUrl = 'https://telebot.mudrayaod.now.sh'
+// const webHookUrl = 'https://4ae0f0f1.ngrok.io'
 
+const firebaseConfig = {
+    apiKey: 'AIzaSyBy1Gw42dV8p7_elSE_mUezyTKtTmEhoOI',
+    authDomain: 'my-project-1544392816568.firebaseapp.com',
+    databaseURL: 'https://my-project-1544392816568.firebaseio.com',
+    projectId: 'my-project-1544392816568',
+    storageBucket: 'my-project-1544392816568.appspot.com',
+    messagingSenderId: '421573621280',
+    appId: '1:421573621280:web:cf0c483e1a1f8799'
+}
 
-    const token = process.env['tg_api_key'] || '755380132:AAH326o9uguBRBOC9qpGX_n5TvQug85W8Ys'
-    const bot = new TelegramBot(token, { polling: true })
-    const url = 'https://telebot.mudrayaod.now.sh'
+firebase.initializeApp(firebaseConfig)
 
-    bot.setWebHook(`${url}/bot${token}`)
+const ref = firebase.database().ref()
+const msgRef = ref.child('msg')
 
-    bot.on('message', (msg) => {
-        // console.log(msg);
-        var fromId = msg.from.id
-        var sign = msg.text.toString().toLowerCase()
+const sendMessage = (chatId, text, res) => {
+    const sendMessageUrl = `https://api.telegram.org/bot${token}/sendMessage`
 
-        let optionsJsdom = {
-            referrer: 'http://astroscope.ru/horoskop/ejednevniy_goroskop/' + sign + '.html'
+    request.post({
+            url: sendMessageUrl,
+            method: 'post',
+            body: {
+                chat_id: chatId,
+                text: text
+            },
+            json: true
+        },
+        (error, response, body) => {
+            console.log(error)
+            console.log(body)
+            res.writeHead(200, { 'Content-Type': 'text/html' })
+            res.end('OK')
         }
+    )
+}
 
-        let request = http.get('http://astroscope.ru/horoskop/ejednevniy_goroskop/' + sign + '.html', function (response) {
-            if (response.statusCode === 200) {
-                JSDOM.fromURL('http://astroscope.ru/horoskop/ejednevniy_goroskop/' + sign + '.html', optionsJsdom).then(dom => {
-                        let horoscope = dom.window.document.querySelectorAll('.p-3')[1].innerHTML
-                        bot.sendMessage(fromId, horoscope)
-                    }
-                )
-            } else { if (sign !== '/start' && sign !== '/help') bot.sendMessage(fromId, 'Пожалуйста, придерживайся инструкции ;)') }
-        })
+http.createServer(function (req, res) {
+    let data = ''
 
-        request.on('error', function (error) {
-            console.error(error.status)
-        })
+    req.on('data', chunk => {
+        data += chunk
     })
 
-    bot.onText(/\/(start|help)/, function (msg, match) {
-        var fromId = msg.from.id
-
-        if (match[1].toString() === 'start') {
-            bot.sendMessage(fromId, 'Добро пожаловать!\nЧтобы узнать как пользоваться ботом используй команду /help')
+    req.on('end', () => {
+        const parsedUpdate = data !== '' ? JSON.parse(data) : {}
+        if (typeof parsedUpdate.message !== 'undefined') {
+            const text = parsedUpdate.message.text
+            const chatId = parsedUpdate.message.chat.id
+            if (text === '/start') {
+                const start = 'Добро пожаловать!\nЧтобы узнать как пользоваться ботом используй команду /help'
+                sendMessage(chatId, start, res)
+            } else if (text === '/help') {
+                const help = 'Давай же вместе узнаем, что интересного ждет тебя сегодня)\n' +
+                    'Надеюсь, ты знаешь свой зодиакальный знак) В зависимости от этого введи одно из следующих слов:\n\n' +
+                    'aries - если ты Овен\n' +
+                    'taurus - если ты Телец\n' +
+                    'gemini - если ты Близнецы\n' +
+                    'cancer - если ты Рак\n' +
+                    'leo - если ты Лев\n' +
+                    'virgo - если ты Дева\n' +
+                    'libra - если ты Весы\n' +
+                    'scorpio - если ты Скорпион\n' +
+                    'sagittarius - если ты Стрелец\n' +
+                    'capricorn - если ты Козерог\n' +
+                    'aquarius - если ты Водолей\n' +
+                    'pisces - если ты Рыбы\n'
+                sendMessage(chatId, help, res)
+            } else if (text === 'aries' || text === 'taurus' || text === 'gemini' || text === 'cancer' || text === 'leo' || text === 'virgo' ||
+                text === 'libra' || text === 'scorpio' || text === 'sagittarius' || text === 'capricorn' || text === 'aquarius' || text === 'pisces') {
+                let optionsJsdom = {
+                    referrer: 'http://astroscope.ru/horoskop/ejednevniy_goroskop/' + text + '.html'
+                }
+                let requestHoroscope = http.get('http://astroscope.ru/horoskop/ejednevniy_goroskop/' + text + '.html', function (responseHoroscope) {
+                    if (responseHoroscope.statusCode === 200) {
+                        JSDOM.fromURL('http://astroscope.ru/horoskop/ejednevniy_goroskop/' + text + '.html', optionsJsdom).then(dom => {
+                                let horoscope = dom.window.document.querySelectorAll('.p-3')[1].innerHTML
+                                sendMessage(chatId, horoscope, res)
+                                msgRef.push().set({
+                                    chatId: chatId,
+                                    msg: text
+                                })
+                            }
+                        )
+                    } else { sendMessage(chatId, 'Пожалуйста, придерживайся инструкции ;)', res) }
+                })
+                requestHoroscope.on('error', function (error) {
+                    console.error(error.status)
+                })
+            } else { sendMessage(chatId, 'Пожалуйста, придерживайся инструкции ;)', res) }
         }
-
-        if (match[1].toString() === 'help') {
-            bot.sendMessage(fromId, 'Давай же вместе узнаем, что интересного ждет тебя сегодня)\n' +
-                'Надеюсь, ты знаешь свой зодиакальный знак) В зависимости от этого введи одно из следующих слов:\n\n' +
-                'aries - если ты Овен\n' +
-                'taurus - если ты Телец\n' +
-                'gemini - если ты Близнецы\n' +
-                'cancer - если ты Рак\n' +
-                'leo - если ты Лев\n' +
-                'virgo - если ты Дева\n' +
-                'libra - если ты Весы\n' +
-                'scorpio - если ты Скорпион\n' +
-                'sagittarius - если ты Стрелец\n' +
-                'capricorn - если ты Козерог\n' +
-                'aquarius - если ты Водолей\n' +
-                'pisces - если ты Рыбы\n')
-        }
+        res.writeHead(200, { 'Content-Type': 'text/html' })
+        res.end('OK')
     })
+}).listen(3000)
 
+const setWebHook = () => {
+    const setWebhookUrl = `https://api.telegram.org/bot${token}/setWebhook`
 
+    request.post({
+            url: setWebhookUrl,
+            method: 'post',
+            body: {
+                url: webHookUrl
+            },
+            json: true
+        },
+        (error, response, body) => {
+            console.log(body)
+            console.log(error)
+            response.writeHead(200, { 'Content-Type': 'text/html' })
+            response.end('OK')
+        })
+}
+
+setWebHook()
